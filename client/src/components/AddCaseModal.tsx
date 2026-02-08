@@ -24,13 +24,14 @@ interface AddCaseModalProps {
   mode?: "create" | "edit";
 }
 
-type Category = "prompt" | "automation" | "tools" | "business";
+type Category = "prompt" | "automation" | "tools" | "business" | "activation";
 
 const categories = [
   { id: "prompt" as Category, label: "プロンプト集" },
   { id: "automation" as Category, label: "自動化" },
   { id: "tools" as Category, label: "ツール活用" },
   { id: "business" as Category, label: "業務活用" },
+  { id: "activation" as Category, label: "活性化施策" },
 ];
 
 export function AddCaseModal({

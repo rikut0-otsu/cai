@@ -5,7 +5,7 @@ CREATE TABLE `case_studies` (
 	`description` text NOT NULL,
 	`thumbnail_url` text,
 	`thumbnail_key` varchar(512),
-	`category` enum('prompt','automation','tools','business') NOT NULL,
+	`category` enum('prompt','automation','tools','business','activation') NOT NULL,
 	`tools` text NOT NULL,
 	`challenge` text NOT NULL,
 	`solution` text NOT NULL,

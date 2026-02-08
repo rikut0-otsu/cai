@@ -51,7 +51,7 @@
         },
         "category": {
           "name": "category",
-          "type": "enum('prompt','automation','tools','business')",
+          "type": "enum('prompt','automation','tools','business','activation')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

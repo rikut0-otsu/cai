@@ -47,7 +47,7 @@ export const caseStudies = sqliteTable("case_studies", {
   thumbnailKey: text("thumbnail_key"),
   /** Category */
   category: text("category", {
-    enum: ["prompt", "automation", "tools", "business"],
+    enum: ["prompt", "automation", "tools", "business", "activation"],
   }).notNull(),
   /** Tools used (JSON array) */
   tools: text("tools").notNull(),

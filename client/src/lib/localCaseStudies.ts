@@ -1,4 +1,9 @@
-export type CaseStudyCategory = "prompt" | "automation" | "tools" | "business";
+export type CaseStudyCategory =
+  | "prompt"
+  | "automation"
+  | "tools"
+  | "business"
+  | "activation";
 
 export type CaseStudy = {
   id: number;

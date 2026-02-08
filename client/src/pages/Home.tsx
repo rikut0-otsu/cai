@@ -14,7 +14,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 
-type Category = "all" | "liked" | "prompt" | "automation" | "tools" | "business";
+type Category =
+  | "all"
+  | "liked"
+  | "prompt"
+  | "automation"
+  | "tools"
+  | "business"
+  | "activation";
 
 const categories = [
   { id: "all" as Category, label: "ALL" },
@@ -23,6 +30,7 @@ const categories = [
   { id: "automation" as Category, label: "自動化" },
   { id: "tools" as Category, label: "ツール活用" },
   { id: "business" as Category, label: "業務活用" },
+  { id: "activation" as Category, label: "活性化施策" },
 ];
 
 export default function Home() {
@@ -81,6 +89,7 @@ export default function Home() {
       automation: 0,
       tools: 0,
       business: 0,
+      activation: 0,
     };
 
     for (const item of cases) {
