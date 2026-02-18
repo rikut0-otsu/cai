@@ -36,7 +36,7 @@ const categories = [
 
 export default function Home() {
   const utils = trpc.useUtils();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const canPost = isAuthenticated && user?.loginMethod === "google";
   const listQuery = trpc.caseStudies.list.useQuery(undefined, {
     refetchOnWindowFocus: false,
@@ -175,6 +175,25 @@ export default function Home() {
     window.location.href = getLoginUrl();
   };
 
+  const handleLogoutClick = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error(error);
+      toast.error("ログアウトに失敗しました");
+    }
+  };
+
+  const handleSwitchAccountClick = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      window.location.href = getLoginUrl({ selectAccount: true });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -251,16 +270,34 @@ export default function Home() {
                 >
                   <span className="text-sm">Googleでログイン</span>
                 </Button>
-              ) : canPost ? (
-                <Button
-                  onClick={handleAddClick}
-                  variant="outline"
-                  className="flex items-center gap-2 rounded-full"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="text-sm">事例を追加</span>
-                </Button>
-              ) : null}
+              ) : (
+                <>
+                  {canPost && (
+                    <Button
+                      onClick={handleAddClick}
+                      variant="outline"
+                      className="flex items-center gap-2 rounded-full"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="text-sm">事例を追加</span>
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSwitchAccountClick}
+                    variant="outline"
+                    className="flex items-center gap-2 rounded-full"
+                  >
+                    <span className="text-sm">アカウント切り替え</span>
+                  </Button>
+                  <Button
+                    onClick={handleLogoutClick}
+                    variant="outline"
+                    className="flex items-center gap-2 rounded-full"
+                  >
+                    <span className="text-sm">ログアウト</span>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

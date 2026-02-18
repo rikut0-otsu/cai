@@ -1,7 +1,11 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
+type GetLoginUrlOptions = {
+  selectAccount?: boolean;
+};
+
 // Generate login URL at runtime so redirect URI reflects the current origin.
-export const getLoginUrl = () => {
+export const getLoginUrl = (options?: GetLoginUrlOptions) => {
   const appId = import.meta.env.VITE_APP_ID;
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
@@ -21,6 +25,9 @@ export const getLoginUrl = () => {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);
+  if (options?.selectAccount) {
+    url.searchParams.set("prompt", "select_account");
+  }
 
   return url.toString();
 };
