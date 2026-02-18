@@ -387,9 +387,12 @@ export default function Home() {
                       </div>
                     </div>
                     <CardDescription>{caseStudy.description}</CardDescription>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      投稿日: {formatDateTime(caseStudy.createdAt)}
+                    </p>
                     {isEdited && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        編集: {formatDateTime(caseStudy.updatedAt)}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        編集日: {formatDateTime(caseStudy.updatedAt)}
                       </p>
                     )}
                   </CardHeader>
