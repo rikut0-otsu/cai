@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heart, MessageCircle, Moon, Pencil, Plus, Search, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "wouter";
 import { AddCaseModal } from "@/components/AddCaseModal";
 import { CaseDetailModal } from "@/components/CaseDetailModal";
 import { Switch } from "@/components/ui/switch";
@@ -234,6 +235,14 @@ export default function Home() {
                 <span className="text-sm font-medium">AIに相談する</span>
               </a>
 
+              {user?.role === "admin" && (
+                <Link href="/admin">
+                  <Button variant="outline" className="rounded-full">
+                    <span className="text-sm">管理者ページ</span>
+                  </Button>
+                </Link>
+              )}
+
               {!isAuthenticated ? (
                 <Button
                   onClick={handleLoginClick}
@@ -409,3 +418,5 @@ export default function Home() {
     </div>
   );
 }
+
+
