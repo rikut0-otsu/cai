@@ -31,3 +31,17 @@ export const getLoginUrl = (options?: GetLoginUrlOptions) => {
 
   return url.toString();
 };
+
+export const getOwnerContactHref = () => {
+  const contactUrl = import.meta.env.VITE_OWNER_CONTACT_URL?.trim();
+  if (contactUrl) {
+    return contactUrl;
+  }
+
+  const contactEmail = import.meta.env.VITE_OWNER_CONTACT_EMAIL?.trim();
+  if (contactEmail) {
+    return `mailto:${contactEmail}?subject=${encodeURIComponent("CAI Support")}`;
+  }
+
+  return null;
+};
