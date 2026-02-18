@@ -34,6 +34,39 @@ const categories = [
   { id: "activation" as Category, label: "活性化施策" },
 ];
 
+function getStepFieldConfig(category: Category) {
+  switch (category) {
+    case "prompt":
+      return {
+        label: "実際のプロンプト",
+        required: true,
+        placeholder:
+          "例: あなたは会議ファシリテーターです。以下の議事メモを整理し、ToDoと担当者を抽出してください...",
+      };
+    case "tools":
+      return {
+        label: "参考リンク",
+        required: false,
+        placeholder:
+          "例: https://example.com (任意・1件。登録後はクリックして開けます)",
+      };
+    case "activation":
+      return {
+        label: "詳細プログラム",
+        required: false,
+        placeholder:
+          "例: 1週目: 基礎研修 2週目: 実践ワークショップ... (任意・登録後はコピーできます)",
+      };
+    default:
+      return {
+        label: "実装ステップ",
+        required: true,
+        placeholder:
+          "各ステップを改行で区切って入力\n例:\n1. Google Docsに会議中のメモを記録\n2. GASでドキュメントの内容を取得\n3. ChatGPT APIに送信...",
+      };
+  }
+}
+
 export function AddCaseModal({
   onClose,
   onSuccess,
@@ -60,6 +93,7 @@ export function AddCaseModal({
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const stepFieldConfig = getStepFieldConfig(formData.category);
   const { isAuthenticated, user } = useAuth();
   const utils = trpc.useUtils();
   const createMutation = trpc.caseStudies.create.useMutation({
@@ -158,10 +192,25 @@ export function AddCaseModal({
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
-    const stepsArray = formData.steps
-      .split("\n")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    let stepsArray: string[] = [];
+    if (formData.category === "prompt" || formData.category === "activation") {
+      const text = formData.steps.trim();
+      stepsArray = text ? [text] : [];
+    } else if (formData.category === "tools") {
+      const link = formData.steps.trim();
+      stepsArray = link ? [link] : [];
+    } else {
+      stepsArray = formData.steps
+        .split("\n")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+    }
+
+    if ((formData.category === "prompt" || stepFieldConfig.required) && stepsArray.length === 0) {
+      toast.error(`${stepFieldConfig.label}を入力してください`);
+      setIsSaving(false);
+      return;
+    }
 
     const thumbnailUrl = imagePreview ?? undefined;
 
@@ -376,14 +425,20 @@ export function AddCaseModal({
           {/* Steps */}
           <div>
             <Label htmlFor="steps">
-              実装ステップ <span className="text-red-500">*</span>
+              {stepFieldConfig.label}
+              {stepFieldConfig.required && (
+                <span className="text-red-500"> *</span>
+              )}
+              {!stepFieldConfig.required && (
+                <span className="text-muted-foreground"> (任意)</span>
+              )}
             </Label>
             <Textarea
               id="steps"
-              required
+              required={stepFieldConfig.required}
               value={formData.steps}
               onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-              placeholder="各ステップを改行で区切って入力&#10;例:&#10;1. Google Docsに会議中のメモを記録&#10;2. GASでドキュメントの内容を取得&#10;3. ChatGPT APIに送信..."
+              placeholder={stepFieldConfig.placeholder}
               rows={5}
               className="mt-2"
             />

@@ -8,7 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Heart, Pencil, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Heart, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CaseDetailModalProps {
   caseStudy: CaseStudy | null;
@@ -65,6 +66,20 @@ export function CaseDetailModal({
       hour: "2-digit",
       minute: "2-digit",
     }).format(new Date(timestamp));
+  const stepText = caseStudy.steps.join("\n");
+  const referenceLink = caseStudy.steps[0] ?? "";
+  const canOpenReferenceLink = /^https?:\/\//i.test(referenceLink);
+
+  const copyText = async (text: string, label: string) => {
+    if (!text.trim()) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label}をコピーしました`);
+    } catch (error) {
+      console.error(error);
+      toast.error("コピーに失敗しました");
+    }
+  };
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -159,17 +174,90 @@ export function CaseDetailModal({
             <p className="text-foreground leading-relaxed">{caseStudy.solution}</p>
           </div>
 
-          {/* Steps */}
-          <div>
-            <h3 className="font-semibold text-lg mb-2">実装ステップ</h3>
-            <ol className="list-decimal list-inside space-y-2">
-              {caseStudy.steps.map((step: string, index: number) => (
-                <li key={index} className="text-foreground leading-relaxed">
-                  {step}
-                </li>
-              ))}
-            </ol>
-          </div>
+          {/* Steps / Category-specific field */}
+          {caseStudy.category === "prompt" ? (
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="font-semibold text-lg">実際のプロンプト</h3>
+                {stepText.trim() && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyText(stepText, "実際のプロンプト")}
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    コピー
+                  </Button>
+                )}
+              </div>
+              {stepText.trim() ? (
+                <pre className="text-foreground leading-relaxed whitespace-pre-wrap rounded-lg bg-muted p-4 text-sm">
+                  {stepText}
+                </pre>
+              ) : (
+                <p className="text-muted-foreground">未設定</p>
+              )}
+            </div>
+          ) : caseStudy.category === "tools" ? (
+            <div>
+              <h3 className="font-semibold text-lg mb-2">参考リンク</h3>
+              {referenceLink ? (
+                canOpenReferenceLink ? (
+                  <a
+                    href={referenceLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:underline break-all"
+                  >
+                    {referenceLink}
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <p className="text-muted-foreground break-all">
+                    {referenceLink}
+                  </p>
+                )
+              ) : (
+                <p className="text-muted-foreground">未設定</p>
+              )}
+            </div>
+          ) : caseStudy.category === "activation" ? (
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="font-semibold text-lg">詳細プログラム</h3>
+                {stepText.trim() && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyText(stepText, "詳細プログラム")}
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    コピー
+                  </Button>
+                )}
+              </div>
+              {stepText.trim() ? (
+                <pre className="text-foreground leading-relaxed whitespace-pre-wrap rounded-lg bg-muted p-4 text-sm">
+                  {stepText}
+                </pre>
+              ) : (
+                <p className="text-muted-foreground">未設定</p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <h3 className="font-semibold text-lg mb-2">実装ステップ</h3>
+              <ol className="list-decimal list-inside space-y-2">
+                {caseStudy.steps.map((step: string, index: number) => (
+                  <li key={index} className="text-foreground leading-relaxed">
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
           {/* Impact */}
           {caseStudy.impact && (
