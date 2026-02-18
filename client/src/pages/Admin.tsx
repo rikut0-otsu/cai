@@ -1,47 +1,67 @@
-import { type FormEvent, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+type Role = "user" | "admin";
 
 export default function Admin() {
   const { user, loading, isAuthenticated } = useAuth();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-
-  const notifyOwnerMutation = trpc.system.notifyOwner.useMutation();
-
   const isAdmin = user?.role === "admin";
+  const [search, setSearch] = useState("");
+  const [pendingUserId, setPendingUserId] = useState<number | null>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const utils = trpc.useUtils();
+  const usersQuery = trpc.admin.users.list.useQuery(undefined, {
+    enabled: isAuthenticated && isAdmin,
+    refetchOnWindowFocus: false,
+  });
+  const updateRoleMutation = trpc.admin.users.updateRole.useMutation({
+    onSuccess: () => {
+      utils.admin.users.list.invalidate();
+      utils.auth.me.invalidate();
+    },
+  });
 
-    if (!isAdmin) {
-      toast.error("管理者のみ実行できます");
-      return;
-    }
+  const users = usersQuery.data ?? [];
 
+  const filteredUsers = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return users;
+
+    return users.filter(item => {
+      const name = (item.name ?? "").toLowerCase();
+      const email = (item.email ?? "").toLowerCase();
+      const openId = item.openId.toLowerCase();
+      return (
+        name.includes(keyword) ||
+        email.includes(keyword) ||
+        openId.includes(keyword)
+      );
+    });
+  }, [users, search]);
+
+  const handleRoleChange = async (userId: number, role: Role) => {
     try {
-      const result = await notifyOwnerMutation.mutateAsync({
-        title: title.trim(),
-        content: content.trim(),
-      });
-
-      if (result.success) {
-        toast.success("通知を送信しました");
-        setTitle("");
-        setContent("");
-      } else {
-        toast.error("通知サービスで送信に失敗しました");
-      }
+      setPendingUserId(userId);
+      await updateRoleMutation.mutateAsync({ userId, role });
+      toast.success("ロールを更新しました");
     } catch (error) {
       console.error(error);
-      toast.error("通知の送信に失敗しました");
+      toast.error("ロール更新に失敗しました");
+    } finally {
+      setPendingUserId(null);
     }
   };
 
@@ -100,67 +120,70 @@ export default function Admin() {
 
       <Card>
         <CardHeader>
-          <CardTitle>管理者情報</CardTitle>
-          <CardDescription>現在のログインユーザー</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>
-            <span className="font-medium">ID:</span> {user.id}
-          </p>
-          <p>
-            <span className="font-medium">Name:</span> {user.name ?? "-"}
-          </p>
-          <p>
-            <span className="font-medium">OpenID:</span> {user.openId}
-          </p>
-          <p>
-            <span className="font-medium">Role:</span> {user.role}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>オーナー通知送信</CardTitle>
+          <CardTitle>ユーザーアカウント管理</CardTitle>
           <CardDescription>
-            system.notifyOwner (admin専用) を実行します。
+            管理者ロールの付与/剥奪ができます（オーナーは固定）。
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="notify-title">タイトル</Label>
-              <Input
-                id="notify-title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="例: 緊急メンテナンス"
-                required
-                maxLength={1200}
-              />
-            </div>
+        <CardContent className="space-y-4">
+          <Input
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="名前・メール・OpenIDで検索"
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="notify-content">本文</Label>
-              <Textarea
-                id="notify-content"
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                placeholder="通知内容を入力してください"
-                required
-                maxLength={20000}
-                rows={8}
-              />
-            </div>
+          {usersQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">ユーザー一覧を取得中...</p>
+          ) : filteredUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">対象ユーザーがいません。</p>
+          ) : (
+            <div className="space-y-3">
+              {filteredUsers.map(item => {
+                const isSelf = item.id === user.id;
+                const isLocked = item.isOwner || isSelf;
+                const isPending = pendingUserId === item.id;
 
-            <Button type="submit" disabled={notifyOwnerMutation.isPending}>
-              {notifyOwnerMutation.isPending ? "送信中..." : "通知を送信"}
-            </Button>
-          </form>
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-border p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{item.name ?? "(no name)"}</p>
+                        <Badge variant={item.role === "admin" ? "default" : "secondary"}>
+                          {item.role}
+                        </Badge>
+                        {item.isOwner && <Badge variant="outline">owner</Badge>}
+                        {isSelf && <Badge variant="outline">you</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{item.email ?? "no email"}</p>
+                      <p className="text-xs text-muted-foreground break-all">{item.openId}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={item.role === "admin" ? "default" : "outline"}
+                        disabled={item.role === "admin" || isLocked || isPending}
+                        onClick={() => handleRoleChange(item.id, "admin")}
+                      >
+                        管理者にする
+                      </Button>
+                      <Button
+                        variant={item.role === "user" ? "default" : "outline"}
+                        disabled={item.role === "user" || isLocked || isPending}
+                        onClick={() => handleRoleChange(item.id, "user")}
+                      >
+                        一般ユーザーにする
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
   );
 }
-
-

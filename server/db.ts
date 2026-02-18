@@ -107,6 +107,49 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get user by id: database not available");
+    return undefined;
+  }
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot list users: database not available");
+    return [];
+  }
+
+  return db
+    .select()
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function updateUserRole(id: number, role: "user" | "admin") {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update user role: database not available");
+    return false;
+  }
+
+  await db
+    .update(users)
+    .set({ role })
+    .where(eq(users.id, id));
+
+  return true;
+}
 // ========================================
 // Case Studies Queries
 // ========================================
@@ -254,3 +297,4 @@ export async function deleteCaseStudy(id: number) {
   await db.delete(caseStudies).where(eq(caseStudies.id, id));
   return true;
 }
+

@@ -1,11 +1,12 @@
 import { COOKIE_NAME, NOT_ADMIN_ERR_MSG } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
+import { ENV } from "./_core/env";
 
 const decodeBase64 = (input: string) => {
   if (typeof atob === "function") {
@@ -39,6 +40,51 @@ export const appRouter = router({
     }),
   }),
 
+  admin: router({
+    users: router({
+      list: adminProcedure.query(async () => {
+        const allUsers = await db.getAllUsers();
+        return allUsers.map(item => ({
+          ...item,
+          isOwner: item.openId === ENV.ownerOpenId,
+        }));
+      }),
+
+      updateRole: adminProcedure
+        .input(
+          z.object({
+            userId: z.number().int().positive(),
+            role: z.enum(["user", "admin"]),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const targetUser = await db.getUserById(input.userId);
+          if (!targetUser) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "User not found.",
+            });
+          }
+
+          if (targetUser.openId === ENV.ownerOpenId && input.role !== "admin") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Owner account role cannot be changed.",
+            });
+          }
+
+          if (targetUser.id === ctx.user.id && input.role !== "admin") {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "You cannot remove your own admin role.",
+            });
+          }
+
+          await db.updateUserRole(input.userId, input.role);
+          return { success: true } as const;
+        }),
+    }),
+  }),
   caseStudies: router({
     // 全事例一覧取得(公開)
     list: publicProcedure.query(async ({ ctx }) => {
@@ -330,3 +376,5 @@ async function generateTags(data: {
 }
 
 export type AppRouter = typeof appRouter;
+
+
