@@ -1,6 +1,6 @@
 import { getLoginUrl, getOwnerContactHref } from "@/const";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
@@ -30,24 +30,21 @@ export default function Login() {
       <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 bottom-14 h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
 
-      <div className="container flex min-h-screen items-center justify-center py-10">
+      <div className="container flex min-h-screen flex-col items-center justify-center py-10">
         <Card className="w-full max-w-xl border-white/60 bg-white/70 shadow-2xl backdrop-blur-md">
           <CardHeader className="space-y-5 text-center">
-            <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
+            <div className="mx-auto flex w-full max-w-sm items-center justify-center rounded-2xl bg-white px-4 py-3 shadow-lg ring-1 ring-slate-200">
               <img
                 src="/logo.png"
-                alt="CAI Library logo"
-                className="h-20 w-20 rounded-2xl object-cover"
+                alt="Service logo"
+                className="h-auto w-full object-contain"
               />
             </div>
-            <div className="space-y-2">
-              <CardTitle className="text-2xl tracking-tight">CAI Library</CardTitle>
-              <CardDescription className="text-sm leading-6">
-                このサービスはログインしたユーザーのみ利用できます。
-                <br />
-                Googleアカウントでサインインして開始してください。
-              </CardDescription>
-            </div>
+            <CardDescription className="text-sm leading-6">
+              このサービスはログインしたユーザーのみ利用できます。
+              <br />
+              Googleアカウントでサインインして開始してください。
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-3">
@@ -90,10 +87,14 @@ export default function Login() {
 
             <div className="flex items-center justify-center gap-2 pt-1 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5" />
-              OAuth認証により安全にログインします
+              Google OAuthを利用してログインします
             </div>
           </CardContent>
         </Card>
+
+        <footer className="mt-6 text-center text-xs text-slate-500">
+          Created by Rikuto Otsu
+        </footer>
       </div>
     </main>
   );
