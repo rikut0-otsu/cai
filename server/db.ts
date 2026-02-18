@@ -150,6 +150,38 @@ export async function updateUserRole(id: number, role: "user" | "admin") {
 
   return true;
 }
+
+export async function reassignCaseStudiesOwner(
+  fromUserId: number,
+  toUserId: number
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot reassign case studies: database not available");
+    return false;
+  }
+
+  await db
+    .update(caseStudies)
+    .set({
+      userId: toUserId,
+      updatedAt: Date.now(),
+    })
+    .where(eq(caseStudies.userId, fromUserId));
+
+  return true;
+}
+
+export async function deleteUserById(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete user: database not available");
+    return false;
+  }
+
+  await db.delete(users).where(eq(users.id, id));
+  return true;
+}
 // ========================================
 // Case Studies Queries
 // ========================================

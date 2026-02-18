@@ -273,17 +273,6 @@ class SDKServer {
     let user = await db.getUserByOpenId(sessionUserId);
 
     if (!user) {
-      await db.upsertUser({
-        openId: session.openId,
-        name: session.name || null,
-        email: null,
-        loginMethod: "google",
-        lastSignedIn: signedInAt,
-      });
-      user = await db.getUserByOpenId(session.openId);
-    }
-
-    if (!user) {
       throw ForbiddenError("User not found");
     }
 

@@ -83,6 +83,44 @@ export const appRouter = router({
           await db.updateUserRole(input.userId, input.role);
           return { success: true } as const;
         }),
+
+      delete: adminProcedure
+        .input(
+          z.object({
+            userId: z.number().int().positive(),
+            deleteCaseStudies: z.boolean(),
+          })
+        )
+        .mutation(async ({ input, ctx }) => {
+          const targetUser = await db.getUserById(input.userId);
+          if (!targetUser) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "User not found.",
+            });
+          }
+
+          if (targetUser.openId === ENV.ownerOpenId) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Owner account cannot be deleted.",
+            });
+          }
+
+          if (targetUser.id === ctx.user.id) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "You cannot delete your own account.",
+            });
+          }
+
+          if (!input.deleteCaseStudies) {
+            await db.reassignCaseStudiesOwner(targetUser.id, ctx.user.id);
+          }
+
+          await db.deleteUserById(targetUser.id);
+          return { success: true } as const;
+        }),
     }),
   }),
   caseStudies: router({

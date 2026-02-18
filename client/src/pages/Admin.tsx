@@ -21,6 +21,7 @@ export default function Admin() {
   const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
   const [pendingUserId, setPendingUserId] = useState<number | null>(null);
+  const [pendingDeleteUserId, setPendingDeleteUserId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const usersQuery = trpc.admin.users.list.useQuery(undefined, {
@@ -31,6 +32,12 @@ export default function Admin() {
     onSuccess: () => {
       utils.admin.users.list.invalidate();
       utils.auth.me.invalidate();
+    },
+  });
+  const deleteUserMutation = trpc.admin.users.delete.useMutation({
+    onSuccess: () => {
+      utils.admin.users.list.invalidate();
+      utils.caseStudies.list.invalidate();
     },
   });
 
@@ -62,6 +69,31 @@ export default function Admin() {
       toast.error("ロール更新に失敗しました");
     } finally {
       setPendingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async (
+    userId: number,
+    deleteCaseStudies: boolean,
+    displayName: string
+  ) => {
+    const actionText = deleteCaseStudies
+      ? "登録アカウントと事例を削除"
+      : "登録アカウントを削除（事例は管理者に移管）";
+    const confirmed = window.confirm(
+      `${displayName} を ${actionText} します。よろしいですか？`
+    );
+    if (!confirmed) return;
+
+    try {
+      setPendingDeleteUserId(userId);
+      await deleteUserMutation.mutateAsync({ userId, deleteCaseStudies });
+      toast.success("ユーザーを削除しました");
+    } catch (error) {
+      console.error(error);
+      toast.error("ユーザー削除に失敗しました");
+    } finally {
+      setPendingDeleteUserId(null);
     }
   };
 
@@ -122,7 +154,7 @@ export default function Admin() {
         <CardHeader>
           <CardTitle>ユーザーアカウント管理</CardTitle>
           <CardDescription>
-            管理者ロールの付与/剥奪ができます（オーナーは固定）。
+            管理者ロールの付与/剥奪、ユーザー削除（事例を削除 or 管理者へ移管）ができます（オーナーは固定）。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -142,6 +174,9 @@ export default function Admin() {
                 const isSelf = item.id === user.id;
                 const isLocked = item.isOwner || isSelf;
                 const isPending = pendingUserId === item.id;
+                const isDeletePending = pendingDeleteUserId === item.id;
+                const isDeleteLocked = isLocked || isDeletePending;
+                const labelName = item.name ?? item.email ?? `user-${item.id}`;
 
                 return (
                   <div
@@ -164,17 +199,35 @@ export default function Admin() {
                     <div className="flex items-center gap-2">
                       <Button
                         variant={item.role === "admin" ? "default" : "outline"}
-                        disabled={item.role === "admin" || isLocked || isPending}
+                        disabled={
+                          item.role === "admin" || isLocked || isPending || isDeletePending
+                        }
                         onClick={() => handleRoleChange(item.id, "admin")}
                       >
                         管理者にする
                       </Button>
                       <Button
                         variant={item.role === "user" ? "default" : "outline"}
-                        disabled={item.role === "user" || isLocked || isPending}
+                        disabled={
+                          item.role === "user" || isLocked || isPending || isDeletePending
+                        }
                         onClick={() => handleRoleChange(item.id, "user")}
                       >
                         一般ユーザーにする
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={isDeleteLocked}
+                        onClick={() => handleDeleteUser(item.id, false, labelName)}
+                      >
+                        事例を残して削除
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        disabled={isDeleteLocked}
+                        onClick={() => handleDeleteUser(item.id, true, labelName)}
+                      >
+                        事例ごと削除
                       </Button>
                     </div>
                   </div>
