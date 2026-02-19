@@ -102,7 +102,7 @@ export default function Home() {
         };
         const priorityDiff = getPriority(b) - getPriority(a);
         if (priorityDiff !== 0) return priorityDiff;
-        return b.createdAt - a.createdAt;
+        return a.createdAt - b.createdAt;
       }
       if (sortOption === "createdAsc") {
         return a.createdAt - b.createdAt;
