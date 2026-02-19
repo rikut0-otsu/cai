@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, MessageCircle, Moon, Pencil, Plus, Search, Sun } from "lucide-react";
+import { Heart, Moon, Pencil, Plus, Search, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { AddCaseModal } from "@/components/AddCaseModal";
 import { CaseDetailModal } from "@/components/CaseDetailModal";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
+import { AIConsultButton } from "@/components/AIConsultButton";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -274,15 +275,13 @@ export default function Home() {
                   />
                 </div>
               )}
-              <a
+              <AIConsultButton
+                iconNormal="/icon-normal.png"
+                iconHeart="/icon-heart.png"
                 href="https://notebooklm.google/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-5 py-2.5 text-foreground hover:bg-muted rounded-full transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">AIに相談する</span>
-              </a>
+              />
 
               {user?.role === "admin" && (
                 <Link href="/admin">
