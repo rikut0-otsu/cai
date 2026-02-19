@@ -66,7 +66,9 @@ export function AIConsultButton({
 
   const iconNode = iconsReady ? (
     <span
-      className="relative inline-block h-5 w-5 shrink-0"
+      className={`relative inline-block h-7 w-7 shrink-0 transition-transform duration-200 ${
+        hovered ? "scale-110" : "scale-100"
+      }`}
       aria-hidden
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
@@ -74,7 +76,7 @@ export function AIConsultButton({
       <img
         src={iconNormal}
         alt=""
-        className={`absolute inset-0 h-5 w-5 object-contain transition-opacity duration-200 ${
+        className={`absolute inset-0 h-7 w-7 object-contain transition-opacity duration-200 ${
           hovered ? "opacity-0" : "opacity-100"
         }`}
         draggable={false}
@@ -82,14 +84,19 @@ export function AIConsultButton({
       <img
         src={iconHeart}
         alt=""
-        className={`absolute inset-0 h-5 w-5 object-contain transition-opacity duration-200 ${
+        className={`absolute inset-0 h-7 w-7 object-contain transition-opacity duration-200 ${
           hovered ? "opacity-100" : "opacity-0"
         }`}
         draggable={false}
       />
     </span>
   ) : (
-    <MessageCircle className="w-4 h-4 shrink-0" aria-hidden />
+    <MessageCircle
+      className={`w-6 h-6 shrink-0 transition-transform duration-200 ${
+        hovered ? "scale-110" : "scale-100"
+      }`}
+      aria-hidden
+    />
   );
 
   return (
