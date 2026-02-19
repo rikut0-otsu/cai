@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Moon, Pencil, Plus, Search, Sun } from "lucide-react";
+import { ChevronDown, Heart, LogOut, Moon, Pencil, Plus, Repeat, Search, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { AddCaseModal } from "@/components/AddCaseModal";
 import { CaseDetailModal } from "@/components/CaseDetailModal";
 import { UserProfileDialog } from "@/components/UserProfileDialog";
@@ -23,6 +23,13 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Category =
   | "all"
@@ -46,6 +53,7 @@ const categories = [
 ];
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const { isAuthenticated, user, logout } = useAuth();
   const canPost = isAuthenticated && user?.loginMethod === "google";
@@ -311,25 +319,29 @@ export default function Home() {
                       <span className="text-sm">事例を追加</span>
                     </Button>
                   )}
-                  <Link href="/profile">
-                    <Button variant="outline" className="flex items-center gap-2 rounded-full">
-                      <span className="text-sm">プロフィール</span>
-                    </Button>
-                  </Link>
-                  <Button
-                    onClick={handleSwitchAccountClick}
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-full"
-                  >
-                    <span className="text-sm">アカウント切り替え</span>
-                  </Button>
-                  <Button
-                    onClick={handleLogoutClick}
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-full"
-                  >
-                    <span className="text-sm">ログアウト</span>
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center gap-2 rounded-full">
+                        <span className="text-sm">アカウント管理</span>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      <DropdownMenuItem onSelect={() => setLocation("/profile")}>
+                        <User className="w-4 h-4" />
+                        プロフィール
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleSwitchAccountClick}>
+                        <Repeat className="w-4 h-4" />
+                        アカウント切り替え
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onSelect={handleLogoutClick}>
+                        <LogOut className="w-4 h-4" />
+                        ログアウト
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
             </div>
