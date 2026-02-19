@@ -2,14 +2,20 @@ import { getLoginUrl, getOwnerContactHref } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowUpRight, CircleHelp, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function Login() {
   const { isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
   const ownerContactHref = getOwnerContactHref();
+  const [inviteCode, setInviteCode] = useState("");
+  const errorMessage = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("error") ?? "";
+  }, []);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -18,11 +24,11 @@ export default function Login() {
   }, [isAuthenticated, loading, setLocation]);
 
   const handleLoginClick = () => {
-    window.location.href = getLoginUrl();
+    window.location.href = getLoginUrl({ inviteCode });
   };
 
   const handleSelectAccountClick = () => {
-    window.location.href = getLoginUrl({ selectAccount: true });
+    window.location.href = getLoginUrl({ selectAccount: true, inviteCode });
   };
 
   return (
@@ -47,6 +53,20 @@ export default function Login() {
           </CardHeader>
 
           <CardContent className="space-y-3">
+            {errorMessage && (
+              <p className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {errorMessage}
+              </p>
+            )}
+            <div className="space-y-2">
+              <p className="text-sm text-slate-300">招待コード（対象外メールのみ必須）</p>
+              <Input
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="招待コードを入力"
+                className="h-11 border-slate-600 bg-slate-800/70 text-slate-100 placeholder:text-slate-400"
+              />
+            </div>
             <Button
               onClick={handleLoginClick}
               className="h-11 w-full rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400"

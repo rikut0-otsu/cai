@@ -4,9 +4,37 @@ import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
+const INVITE_CODE_SETTING_KEY = "auth.inviteCode";
+const ALLOWED_DOMAIN = "@cyberagent.co.jp";
+
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function parseOAuthState(state: string): { inviteCode?: string } {
+  const decode = () => {
+    if (typeof atob === "function") {
+      return atob(state);
+    }
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(state, "base64").toString("utf-8");
+    }
+    return state;
+  };
+
+  const decoded = decode();
+  try {
+    const parsed = JSON.parse(decoded) as {
+      redirectUri?: unknown;
+      inviteCode?: unknown;
+    };
+    return {
+      inviteCode: typeof parsed.inviteCode === "string" ? parsed.inviteCode : undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 export function registerOAuthRoutes(app: Express) {
@@ -20,12 +48,29 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
+      const statePayload = parseOAuthState(state);
       const tokenResponse = await sdk.exchangeCodeForToken(code, state);
       const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
 
       if (!userInfo.openId) {
         res.status(400).json({ error: "openId missing from user info" });
         return;
+      }
+
+      const email = userInfo.email?.toLowerCase() ?? "";
+      const isCyberAgentEmail = email.endsWith(ALLOWED_DOMAIN);
+      if (!isCyberAgentEmail) {
+        const setting = await db.getAppSetting(INVITE_CODE_SETTING_KEY);
+        const requiredInviteCode = (setting?.value ?? "").trim();
+        const providedInviteCode = (statePayload.inviteCode ?? "").trim();
+
+        if (!requiredInviteCode || providedInviteCode !== requiredInviteCode) {
+          res.redirect(
+            302,
+            `/login?error=${encodeURIComponent("招待コードが必要です")}`
+          );
+          return;
+        }
       }
 
       await db.upsertUser({

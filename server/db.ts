@@ -1,7 +1,9 @@
 import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
+  appSettings,
   InsertCaseStudy,
+  InsertAppSetting,
   InsertUserProfile,
   InsertUser,
   caseStudies,
@@ -430,6 +432,39 @@ export async function deleteCaseStudy(id: number) {
 
   await db.delete(favorites).where(eq(favorites.caseStudyId, id));
   await db.delete(caseStudies).where(eq(caseStudies.id, id));
+  return true;
+}
+
+export async function getAppSetting(key: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(appSettings)
+    .where(eq(appSettings.key, key))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function setAppSetting(key: string, value: string | null) {
+  const db = await getDb();
+  if (!db) return false;
+
+  const values: InsertAppSetting = {
+    key,
+    value,
+  };
+
+  await db.insert(appSettings).values(values).onConflictDoUpdate({
+    target: appSettings.key,
+    set: {
+      value,
+      updatedAt: Date.now(),
+    },
+  });
+
   return true;
 }
 

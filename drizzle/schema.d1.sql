@@ -45,3 +45,9 @@ CREATE TABLE favorites (
 
 CREATE UNIQUE INDEX favorites_user_case_unique
   ON favorites(user_id, case_study_id);
+
+CREATE TABLE app_settings (
+  key text primary key,
+  value text,
+  updated_at integer not null default (unixepoch() * 1000)
+);

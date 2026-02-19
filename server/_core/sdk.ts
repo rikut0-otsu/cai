@@ -75,11 +75,23 @@ export type SessionPayload = {
 
 class OAuthService {
   private decodeState(state: string): string {
+    const parsePayload = (decoded: string): string => {
+      try {
+        const parsed = JSON.parse(decoded) as { redirectUri?: unknown };
+        if (typeof parsed.redirectUri === "string" && parsed.redirectUri.length > 0) {
+          return parsed.redirectUri;
+        }
+      } catch {
+        // Ignore JSON parse errors and fallback to raw decoded value.
+      }
+      return decoded;
+    };
+
     if (typeof atob === "function") {
-      return atob(state);
+      return parsePayload(atob(state));
     }
     if (typeof Buffer !== "undefined") {
-      return Buffer.from(state, "base64").toString("utf-8");
+      return parsePayload(Buffer.from(state, "base64").toString("utf-8"));
     }
     return state;
   }

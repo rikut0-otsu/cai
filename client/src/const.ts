@@ -2,13 +2,18 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 type GetLoginUrlOptions = {
   selectAccount?: boolean;
+  inviteCode?: string;
 };
 
 // Generate login URL at runtime so redirect URI reflects the current origin.
 export const getLoginUrl = (options?: GetLoginUrlOptions) => {
   const appId = import.meta.env.VITE_APP_ID;
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
-  const state = btoa(redirectUri);
+  const statePayload = JSON.stringify({
+    redirectUri,
+    inviteCode: options?.inviteCode?.trim() || undefined,
+  });
+  const state = btoa(statePayload);
 
   if (!appId) {
     if (import.meta.env.DEV) {

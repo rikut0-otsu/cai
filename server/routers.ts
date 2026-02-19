@@ -8,6 +8,8 @@ import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
 import { ENV } from "./_core/env";
 
+const INVITE_CODE_SETTING_KEY = "auth.inviteCode";
+
 const decodeBase64 = (input: string) => {
   if (typeof atob === "function") {
     const binary = atob(input);
@@ -118,6 +120,27 @@ export const appRouter = router({
   }),
 
   admin: router({
+    settings: router({
+      getInviteCode: adminProcedure.query(async () => {
+        const setting = await db.getAppSetting(INVITE_CODE_SETTING_KEY);
+        return {
+          inviteCode: setting?.value ?? "",
+        };
+      }),
+      setInviteCode: adminProcedure
+        .input(
+          z.object({
+            inviteCode: z.string().trim().max(128),
+          })
+        )
+        .mutation(async ({ input }) => {
+          await db.setAppSetting(
+            INVITE_CODE_SETTING_KEY,
+            input.inviteCode.trim() || null
+          );
+          return { success: true } as const;
+        }),
+    }),
     users: router({
       list: adminProcedure.query(async () => {
         const allUsers = await db.getAllUsers();

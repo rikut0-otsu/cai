@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -20,6 +20,7 @@ export default function Admin() {
   const { user, loading, isAuthenticated } = useAuth();
   const isAdmin = user?.role === "admin";
   const [search, setSearch] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [pendingUserId, setPendingUserId] = useState<number | null>(null);
   const [pendingDeleteUserId, setPendingDeleteUserId] = useState<number | null>(null);
 
@@ -27,6 +28,15 @@ export default function Admin() {
   const usersQuery = trpc.admin.users.list.useQuery(undefined, {
     enabled: isAuthenticated && isAdmin,
     refetchOnWindowFocus: false,
+  });
+  const inviteCodeQuery = trpc.admin.settings.getInviteCode.useQuery(undefined, {
+    enabled: isAuthenticated && isAdmin,
+    refetchOnWindowFocus: false,
+  });
+  const setInviteCodeMutation = trpc.admin.settings.setInviteCode.useMutation({
+    onSuccess: () => {
+      utils.admin.settings.getInviteCode.invalidate();
+    },
   });
   const updateRoleMutation = trpc.admin.users.updateRole.useMutation({
     onSuccess: () => {
@@ -42,6 +52,12 @@ export default function Admin() {
   });
 
   const users = usersQuery.data ?? [];
+
+  const currentInviteCode = inviteCodeQuery.data?.inviteCode ?? "";
+
+  useEffect(() => {
+    setInviteCode(currentInviteCode);
+  }, [currentInviteCode]);
 
   const filteredUsers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -97,6 +113,30 @@ export default function Admin() {
     }
   };
 
+  const handleSaveInviteCode = async () => {
+    try {
+      await setInviteCodeMutation.mutateAsync({ inviteCode: inviteCode.trim() });
+      toast.success("招待コードを更新しました");
+    } catch (error) {
+      console.error(error);
+      toast.error("招待コードの更新に失敗しました");
+    }
+  };
+
+  const handleCopyInviteCode = async () => {
+    if (!currentInviteCode) {
+      toast.error("招待コードが未設定です");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(currentInviteCode);
+      toast.success("招待コードをコピーしました");
+    } catch (error) {
+      console.error(error);
+      toast.error("コピーに失敗しました");
+    }
+  };
+
   if (loading) {
     return (
       <main className="container py-12">
@@ -149,6 +189,39 @@ export default function Admin() {
           <Button variant="outline">ホームに戻る</Button>
         </Link>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>招待コード設定</CardTitle>
+          <CardDescription>
+            @cyberagent.co.jp 以外のメールアドレスでログインする際に必要です。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">現在の招待コード</p>
+            <p className="text-sm font-medium break-all">
+              {currentInviteCode || "未設定"}
+            </p>
+          </div>
+          <Input
+            value={inviteCode}
+            onChange={(event) => setInviteCode(event.target.value)}
+            placeholder="新しい招待コードを入力（空の場合は対象外メールを拒否）"
+          />
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSaveInviteCode}
+              disabled={setInviteCodeMutation.isPending}
+            >
+              設定・変更
+            </Button>
+            <Button variant="outline" onClick={handleCopyInviteCode}>
+              コピー
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
