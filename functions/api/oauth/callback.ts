@@ -5,6 +5,9 @@ import { initEnv } from "../../../server/_core/env";
 import { sdk } from "../../../server/_core/sdk";
 import * as db from "../../../server/db";
 
+const INVITE_CODE_SETTING_KEY = "auth.inviteCode";
+const ALLOWED_DOMAIN = "@cyberagent.co.jp";
+
 type Env = {
   DB?: D1Database;
   test_database?: D1Database;
@@ -39,6 +42,24 @@ const headersToObject = (headers: Headers) => {
   return record;
 };
 
+function parseOAuthState(state: string): { inviteCode?: string } {
+  let decoded = state;
+  if (typeof atob === "function") {
+    decoded = atob(state);
+  } else if (typeof Buffer !== "undefined") {
+    decoded = Buffer.from(state, "base64").toString("utf-8");
+  }
+
+  try {
+    const parsed = JSON.parse(decoded) as { inviteCode?: unknown };
+    return {
+      inviteCode: typeof parsed.inviteCode === "string" ? parsed.inviteCode : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export const onRequest = async ({ request, env }: PagesContext) => {
   initEnv(toEnvRecord(env));
   const dbBinding = env.DB ?? env.test_database;
@@ -56,6 +77,7 @@ export const onRequest = async ({ request, env }: PagesContext) => {
   }
 
   try {
+    const statePayload = parseOAuthState(state);
     const tokenResponse = await sdk.exchangeCodeForToken(code, state);
     const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
 
@@ -64,6 +86,23 @@ export const onRequest = async ({ request, env }: PagesContext) => {
         status: 400,
         headers: { "content-type": "application/json" },
       });
+    }
+
+    const email = userInfo.email?.toLowerCase() ?? "";
+    const isCyberAgentEmail = email.endsWith(ALLOWED_DOMAIN);
+    if (!isCyberAgentEmail) {
+      const setting = await db.getAppSetting(INVITE_CODE_SETTING_KEY);
+      const requiredInviteCode = (setting?.value ?? "").trim();
+      const providedInviteCode = (statePayload.inviteCode ?? "").trim();
+
+      if (!requiredInviteCode || providedInviteCode !== requiredInviteCode) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: `/login?error=${encodeURIComponent("招待コードが必要です")}`,
+          },
+        });
+      }
     }
 
     await db.upsertUser({
