@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
   appSettings,
@@ -439,11 +439,16 @@ export async function getAppSetting(key: string) {
   const db = await getDb();
   if (!db) return undefined;
 
-  const result = await db
-    .select()
-    .from(appSettings)
-    .where(eq(appSettings.key, key))
-    .limit(1);
+  // Guard against missing migrations in existing environments.
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key text primary key,
+      value text,
+      updated_at integer not null default (unixepoch() * 1000)
+    )
+  `);
+
+  const result = await db.select().from(appSettings).where(eq(appSettings.key, key)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -451,6 +456,15 @@ export async function getAppSetting(key: string) {
 export async function setAppSetting(key: string, value: string | null) {
   const db = await getDb();
   if (!db) return false;
+
+  // Guard against missing migrations in existing environments.
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key text primary key,
+      value text,
+      updated_at integer not null default (unixepoch() * 1000)
+    )
+  `);
 
   const values: InsertAppSetting = {
     key,
