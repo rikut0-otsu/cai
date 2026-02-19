@@ -17,6 +17,7 @@ interface CaseDetailModalProps {
   onFavoriteToggle: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (id: number) => void;
+  onAuthorClick: (userId: number) => void;
   canEdit: boolean;
   canDelete: boolean;
 }
@@ -27,6 +28,7 @@ export function CaseDetailModal({
   onFavoriteToggle,
   onDelete,
   onEdit,
+  onAuthorClick,
   canEdit,
   canDelete,
 }: CaseDetailModalProps) {
@@ -95,7 +97,14 @@ export function CaseDetailModal({
                 {caseStudy.description}
               </DialogDescription>
               <p className="text-xs text-muted-foreground mt-2">
-                作成者: {caseStudy.authorName || "不明"}
+                作成者:
+                <button
+                  type="button"
+                  onClick={() => onAuthorClick(caseStudy.userId)}
+                  className="ml-1 underline underline-offset-2 hover:text-foreground"
+                >
+                  {caseStudy.authorName || "不明"}
+                </button>
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 投稿日: {formatDateTime(caseStudy.createdAt)}

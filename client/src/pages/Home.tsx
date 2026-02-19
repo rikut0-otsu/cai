@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { AddCaseModal } from "@/components/AddCaseModal";
 import { CaseDetailModal } from "@/components/CaseDetailModal";
+import { UserProfileDialog } from "@/components/UserProfileDialog";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -31,7 +32,7 @@ type Category =
   | "business"
   | "activation";
 
-type SortOption = "createdDesc" | "createdAsc" | "updatedDesc";
+type SortOption = "default" | "createdDesc" | "createdAsc" | "updatedDesc";
 
 const categories = [
   { id: "all" as Category, label: "ALL" },
@@ -53,8 +54,9 @@ export default function Home() {
   const cases: CaseStudy[] = listQuery.data ?? [];
   const [activeCategory, setActiveCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOption, setSortOption] = useState<SortOption>("createdDesc");
+  const [sortOption, setSortOption] = useState<SortOption>("default");
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
+  const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
   const { theme, toggleTheme, switchable } = useTheme();
@@ -92,6 +94,16 @@ export default function Home() {
     });
 
     return filtered.sort((a, b) => {
+      if (sortOption === "default") {
+        const getPriority = (item: CaseStudy) => {
+          if (item.authorIsOwner) return 2;
+          if (item.authorRole === "admin") return 1;
+          return 0;
+        };
+        const priorityDiff = getPriority(b) - getPriority(a);
+        if (priorityDiff !== 0) return priorityDiff;
+        return b.createdAt - a.createdAt;
+      }
       if (sortOption === "createdAsc") {
         return a.createdAt - b.createdAt;
       }
@@ -182,6 +194,11 @@ export default function Home() {
   const handleEditCase = (caseId: number) => {
     setSelectedCaseId(null);
     setEditingCaseId(caseId);
+  };
+
+  const handleAuthorClick = (e: React.MouseEvent, userId: number) => {
+    e.stopPropagation();
+    setProfileUserId(userId);
   };
 
   const handleLoginClick = () => {
@@ -285,11 +302,6 @@ export default function Home() {
                 </Button>
               ) : (
                 <>
-                  <Link href="/profile">
-                    <Button variant="outline" className="flex items-center gap-2 rounded-full">
-                      <span className="text-sm">プロフィール</span>
-                    </Button>
-                  </Link>
                   {canPost && (
                     <Button
                       onClick={handleAddClick}
@@ -300,6 +312,11 @@ export default function Home() {
                       <span className="text-sm">事例を追加</span>
                     </Button>
                   )}
+                  <Link href="/profile">
+                    <Button variant="outline" className="flex items-center gap-2 rounded-full">
+                      <span className="text-sm">プロフィール</span>
+                    </Button>
+                  </Link>
                   <Button
                     onClick={handleSwitchAccountClick}
                     variant="outline"
@@ -320,32 +337,34 @@ export default function Home() {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-3 mt-6 overflow-x-auto scrollbar-hide pb-1">
-            {categories.map((category) => {
-              const isActive = activeCategory === category.id;
-              return (
-                <Button
-                  key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
-                  variant={isActive ? "default" : "outline"}
-                  className={`rounded-full whitespace-nowrap ${
-                    isActive
-                      ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md"
-                      : ""
-                  }`}
-                >
-                  {category.label} ({categoryCounts[category.id] ?? 0})
-                </Button>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 flex justify-end">
+          <div className="mt-6 flex items-center gap-3">
+            <div className="flex-1 overflow-x-auto scrollbar-hide pb-1">
+              <div className="flex items-center gap-3">
+                {categories.map((category) => {
+                  const isActive = activeCategory === category.id;
+                  return (
+                    <Button
+                      key={category.id}
+                      onClick={() => setActiveCategory(category.id)}
+                      variant={isActive ? "default" : "outline"}
+                      className={`rounded-full whitespace-nowrap ${
+                        isActive
+                          ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md"
+                          : ""
+                      }`}
+                    >
+                      {category.label} ({categoryCounts[category.id] ?? 0})
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
             <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
-              <SelectTrigger className="w-full max-w-xs">
+              <SelectTrigger className="w-64">
                 <SelectValue placeholder="並び替え" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="default">デフォルト（管理者・オーナー優先）</SelectItem>
                 <SelectItem value="createdDesc">投稿日が新しい順</SelectItem>
                 <SelectItem value="createdAsc">投稿日が古い順</SelectItem>
                 <SelectItem value="updatedDesc">編集日が新しい順</SelectItem>
@@ -419,7 +438,14 @@ export default function Home() {
                     </div>
                     <CardDescription>{caseStudy.description}</CardDescription>
                     <p className="text-xs text-muted-foreground mt-2">
-                      作成者: {caseStudy.authorName || "不明"}
+                      作成者:
+                      <button
+                        type="button"
+                        className="ml-1 underline underline-offset-2 hover:text-foreground"
+                        onClick={(e) => handleAuthorClick(e, caseStudy.userId)}
+                      >
+                        {caseStudy.authorName || "不明"}
+                      </button>
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -455,10 +481,17 @@ export default function Home() {
           onFavoriteToggle={handleFavoriteToggle}
           onEdit={handleEditCase}
           onDelete={handleDeleteCase}
+          onAuthorClick={(userId) => setProfileUserId(userId)}
           canEdit={canEditSelected}
           canDelete={canDeleteSelected}
         />
       )}
+
+      <UserProfileDialog
+        userId={profileUserId}
+        open={profileUserId !== null}
+        onClose={() => setProfileUserId(null)}
+      />
 
       {isAddModalOpen && (
         <AddCaseModal

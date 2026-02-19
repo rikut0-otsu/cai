@@ -87,6 +87,34 @@ export const appRouter = router({
 
         return { success: true } as const;
       }),
+    getByUserId: publicProcedure
+      .input(z.object({ userId: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        const user = await db.getUserById(input.userId);
+        if (!user) return null;
+
+        const profile = await db.getUserProfile(input.userId);
+        const cases = await db.getUserCaseStudies(input.userId);
+
+        return {
+          user: {
+            id: user.id,
+            name: user.name ?? "不明",
+            role: user.role,
+            departmentRole: profile?.departmentRole ?? "",
+          },
+          caseStudies: cases.map((c) => ({
+            ...c,
+            tools: JSON.parse(c.tools),
+            steps: JSON.parse(c.steps),
+            tags: JSON.parse(c.tags),
+            isFavorite: false,
+            authorName: c.authorName ?? "不明",
+            authorRole: c.authorRole ?? "user",
+            authorIsOwner: Boolean(c.authorIsOwner),
+          })),
+        };
+      }),
   }),
 
   admin: router({
@@ -189,6 +217,8 @@ export const appRouter = router({
           tags: JSON.parse(c.tags),
           isFavorite: favoriteIds.has(c.id),
           authorName: c.authorName ?? "不明",
+          authorRole: c.authorRole ?? "user",
+          authorIsOwner: Boolean(c.authorIsOwner),
         }));
       }
       
@@ -199,6 +229,8 @@ export const appRouter = router({
         tags: JSON.parse(c.tags),
         isFavorite: false,
         authorName: c.authorName ?? "不明",
+        authorRole: c.authorRole ?? "user",
+        authorIsOwner: Boolean(c.authorIsOwner),
       }));
     }),
 
@@ -218,6 +250,8 @@ export const appRouter = router({
           tags: JSON.parse(caseStudy.tags),
           isFavorite: isFav,
           authorName: caseStudy.authorName ?? "不明",
+          authorRole: caseStudy.authorRole ?? "user",
+          authorIsOwner: Boolean(caseStudy.authorIsOwner),
         };
       }),
 
@@ -364,6 +398,8 @@ export const appRouter = router({
         tags: JSON.parse(f.caseStudy.tags),
         isFavorite: true,
         authorName: f.authorName ?? "不明",
+        authorRole: f.authorRole ?? "user",
+        authorIsOwner: Boolean(f.authorIsOwner),
       }));
     }),
 

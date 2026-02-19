@@ -196,6 +196,8 @@ export async function getAllCaseStudies() {
     .select({
       caseStudy: caseStudies,
       authorName: users.name,
+      authorRole: users.role,
+      authorOpenId: users.openId,
     })
     .from(caseStudies)
     .leftJoin(users, eq(caseStudies.userId, users.id))
@@ -203,6 +205,8 @@ export async function getAllCaseStudies() {
   return result.map((item) => ({
     ...item.caseStudy,
     authorName: item.authorName,
+    authorRole: item.authorRole,
+    authorIsOwner: item.authorOpenId === ENV.ownerOpenId,
   }));
 }
 
@@ -214,6 +218,8 @@ export async function getCaseStudyById(id: number) {
     .select({
       caseStudy: caseStudies,
       authorName: users.name,
+      authorRole: users.role,
+      authorOpenId: users.openId,
     })
     .from(caseStudies)
     .leftJoin(users, eq(caseStudies.userId, users.id))
@@ -223,6 +229,8 @@ export async function getCaseStudyById(id: number) {
   return {
     ...result[0].caseStudy,
     authorName: result[0].authorName,
+    authorRole: result[0].authorRole,
+    authorIsOwner: result[0].authorOpenId === ENV.ownerOpenId,
   };
 }
 
@@ -270,6 +278,8 @@ export async function getUserCaseStudies(userId: number) {
     .select({
       caseStudy: caseStudies,
       authorName: users.name,
+      authorRole: users.role,
+      authorOpenId: users.openId,
     })
     .from(caseStudies)
     .leftJoin(users, eq(caseStudies.userId, users.id))
@@ -278,6 +288,8 @@ export async function getUserCaseStudies(userId: number) {
   return result.map((item) => ({
     ...item.caseStudy,
     authorName: item.authorName,
+    authorRole: item.authorRole,
+    authorIsOwner: item.authorOpenId === ENV.ownerOpenId,
   }));
 }
 
@@ -296,6 +308,8 @@ export async function getUserFavorites(userId: number) {
       createdAt: favorites.createdAt,
       caseStudy: caseStudies,
       authorName: users.name,
+      authorRole: users.role,
+      authorOpenId: users.openId,
     })
     .from(favorites)
     .innerJoin(caseStudies, eq(favorites.caseStudyId, caseStudies.id))
