@@ -95,6 +95,9 @@ export function CaseDetailModal({
                 {caseStudy.description}
               </DialogDescription>
               <p className="text-xs text-muted-foreground mt-2">
+                作成者: {caseStudy.authorName || "不明"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
                 投稿日: {formatDateTime(caseStudy.createdAt)}
               </p>
               {isEdited && (

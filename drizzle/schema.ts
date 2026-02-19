@@ -29,6 +29,22 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * Optional profile fields managed by users.
+ * Keep this separate from auth-backed user columns.
+ */
+export const userProfiles = sqliteTable("user_profiles", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  departmentRole: text("department_role"),
+  createdAt: integer("created_at").notNull().default(nowMs),
+  updatedAt: integer("updated_at").notNull().default(nowMs),
+});
+
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type InsertUserProfile = typeof userProfiles.$inferInsert;
+
+/**
  * Case studies table.
  */
 export const caseStudies = sqliteTable("case_studies", {

@@ -39,6 +39,55 @@ export const appRouter = router({
       } as const;
     }),
   }),
+  profile: router({
+    me: protectedProcedure.query(async ({ ctx }) => {
+      const user = await db.getUserById(ctx.user.id);
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found.",
+        });
+      }
+
+      const profile = await db.getUserProfile(ctx.user.id);
+      const cases = await db.getUserCaseStudies(ctx.user.id);
+
+      return {
+        user: {
+          id: user.id,
+          name: user.name ?? "",
+          email: user.email,
+          role: user.role,
+          loginMethod: user.loginMethod,
+          departmentRole: profile?.departmentRole ?? "",
+        },
+        caseStudies: cases.map((c) => ({
+          ...c,
+          tools: JSON.parse(c.tools),
+          steps: JSON.parse(c.steps),
+          tags: JSON.parse(c.tags),
+          isFavorite: false,
+          authorName: c.authorName ?? "不明",
+        })),
+      };
+    }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(1).max(80),
+          departmentRole: z.string().trim().max(120).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserProfile(ctx.user.id, {
+          name: input.name,
+          departmentRole: input.departmentRole?.trim() || null,
+        });
+
+        return { success: true } as const;
+      }),
+  }),
 
   admin: router({
     users: router({
@@ -139,6 +188,7 @@ export const appRouter = router({
           steps: JSON.parse(c.steps),
           tags: JSON.parse(c.tags),
           isFavorite: favoriteIds.has(c.id),
+          authorName: c.authorName ?? "不明",
         }));
       }
       
@@ -148,6 +198,7 @@ export const appRouter = router({
         steps: JSON.parse(c.steps),
         tags: JSON.parse(c.tags),
         isFavorite: false,
+        authorName: c.authorName ?? "不明",
       }));
     }),
 
@@ -166,6 +217,7 @@ export const appRouter = router({
           steps: JSON.parse(caseStudy.steps),
           tags: JSON.parse(caseStudy.tags),
           isFavorite: isFav,
+          authorName: caseStudy.authorName ?? "不明",
         };
       }),
 
@@ -311,6 +363,7 @@ export const appRouter = router({
         steps: JSON.parse(f.caseStudy.steps),
         tags: JSON.parse(f.caseStudy.tags),
         isFavorite: true,
+        authorName: f.authorName ?? "不明",
       }));
     }),
 

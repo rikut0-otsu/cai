@@ -2,9 +2,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import {
   InsertCaseStudy,
+  InsertUserProfile,
   InsertUser,
   caseStudies,
   favorites,
+  userProfiles,
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -191,10 +193,17 @@ export async function getAllCaseStudies() {
   if (!db) return [];
   
   const result = await db
-    .select()
+    .select({
+      caseStudy: caseStudies,
+      authorName: users.name,
+    })
     .from(caseStudies)
+    .leftJoin(users, eq(caseStudies.userId, users.id))
     .orderBy(caseStudies.createdAt);
-  return result;
+  return result.map((item) => ({
+    ...item.caseStudy,
+    authorName: item.authorName,
+  }));
 }
 
 export async function getCaseStudyById(id: number) {
@@ -202,11 +211,19 @@ export async function getCaseStudyById(id: number) {
   if (!db) return undefined;
   
   const result = await db
-    .select()
+    .select({
+      caseStudy: caseStudies,
+      authorName: users.name,
+    })
     .from(caseStudies)
+    .leftJoin(users, eq(caseStudies.userId, users.id))
     .where(eq(caseStudies.id, id))
     .limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  if (result.length === 0) return undefined;
+  return {
+    ...result[0].caseStudy,
+    authorName: result[0].authorName,
+  };
 }
 
 export async function createCaseStudy(data: InsertCaseStudy) {
@@ -250,11 +267,18 @@ export async function getUserCaseStudies(userId: number) {
   if (!db) return [];
   
   const result = await db
-    .select()
+    .select({
+      caseStudy: caseStudies,
+      authorName: users.name,
+    })
     .from(caseStudies)
+    .leftJoin(users, eq(caseStudies.userId, users.id))
     .where(eq(caseStudies.userId, userId))
     .orderBy(caseStudies.createdAt);
-  return result;
+  return result.map((item) => ({
+    ...item.caseStudy,
+    authorName: item.authorName,
+  }));
 }
 
 // ========================================
@@ -271,13 +295,78 @@ export async function getUserFavorites(userId: number) {
       caseStudyId: favorites.caseStudyId,
       createdAt: favorites.createdAt,
       caseStudy: caseStudies,
+      authorName: users.name,
     })
     .from(favorites)
     .innerJoin(caseStudies, eq(favorites.caseStudyId, caseStudies.id))
+    .leftJoin(users, eq(caseStudies.userId, users.id))
     .where(eq(favorites.userId, userId))
     .orderBy(favorites.createdAt);
   
   return result;
+}
+
+export async function getUserProfile(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  try {
+    const result = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId))
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.warn(
+      "[Database] Failed to read user profile. Migration may be pending.",
+      error
+    );
+    return undefined;
+  }
+}
+
+export async function updateUserProfile(
+  userId: number,
+  data: {
+    name: string;
+    departmentRole: string | null;
+  }
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update user profile: database not available");
+    return false;
+  }
+
+  await db
+    .update(users)
+    .set({
+      name: data.name,
+      updatedAt: Date.now(),
+    })
+    .where(eq(users.id, userId));
+
+  try {
+    const values: InsertUserProfile = {
+      userId,
+      departmentRole: data.departmentRole,
+    };
+    await db.insert(userProfiles).values(values).onConflictDoUpdate({
+      target: userProfiles.userId,
+      set: {
+        departmentRole: data.departmentRole,
+        updatedAt: Date.now(),
+      },
+    });
+  } catch (error) {
+    console.warn(
+      "[Database] Failed to persist departmentRole. Migration may be pending.",
+      error
+    );
+  }
+
+  return true;
 }
 
 export async function isFavorite(userId: number, caseStudyId: number) {

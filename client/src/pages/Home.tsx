@@ -285,6 +285,11 @@ export default function Home() {
                 </Button>
               ) : (
                 <>
+                  <Link href="/profile">
+                    <Button variant="outline" className="flex items-center gap-2 rounded-full">
+                      <span className="text-sm">プロフィール</span>
+                    </Button>
+                  </Link>
                   {canPost && (
                     <Button
                       onClick={handleAddClick}
@@ -413,6 +418,9 @@ export default function Home() {
                       </div>
                     </div>
                     <CardDescription>{caseStudy.description}</CardDescription>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      作成者: {caseStudy.authorName || "不明"}
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-3">

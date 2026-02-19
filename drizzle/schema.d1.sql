@@ -10,6 +10,13 @@ CREATE TABLE users (
   lastSignedIn integer not null default (unixepoch() * 1000)
 );
 
+CREATE TABLE user_profiles (
+  user_id integer primary key references users(id) on delete cascade,
+  department_role text,
+  created_at integer not null default (unixepoch() * 1000),
+  updated_at integer not null default (unixepoch() * 1000)
+);
+
 CREATE TABLE case_studies (
   id integer primary key autoincrement,
   user_id integer not null references users(id) on delete cascade,

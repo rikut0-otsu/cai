@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import Profile from "./pages/Profile";
 
 function ProtectedHome() {
   return (
@@ -25,12 +26,21 @@ function ProtectedAdmin() {
   );
 }
 
+function ProtectedProfile() {
+  return (
+    <RequireAuth>
+      <Profile />
+    </RequireAuth>
+  );
+}
+
 function Router() {
   return (
     <Switch>
       <Route path={"/login"} component={Login} />
       <Route path={"/"} component={ProtectedHome} />
       <Route path={"/admin"} component={ProtectedAdmin} />
+      <Route path={"/profile"} component={ProtectedProfile} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
