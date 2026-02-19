@@ -393,7 +393,7 @@ export default function Home() {
                   onClick={() => setSelectedCaseId(caseStudy.id)}
                 >
                   {caseStudy.thumbnailUrl && (
-                    <div className="relative w-full h-56 overflow-hidden rounded-t-lg">
+                    <div className="relative w-full h-64 overflow-hidden rounded-t-lg">
                       <img
                         src={caseStudy.thumbnailUrl}
                         alt={caseStudy.title}
