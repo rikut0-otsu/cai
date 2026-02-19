@@ -364,7 +364,7 @@ export default function Home() {
                 <SelectValue placeholder="並び替え" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">デフォルト（管理者・オーナー優先）</SelectItem>
+                <SelectItem value="default">デフォルト</SelectItem>
                 <SelectItem value="createdDesc">投稿日が新しい順</SelectItem>
                 <SelectItem value="createdAsc">投稿日が古い順</SelectItem>
                 <SelectItem value="updatedDesc">編集日が新しい順</SelectItem>
