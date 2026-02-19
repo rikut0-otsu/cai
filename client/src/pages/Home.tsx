@@ -11,6 +11,13 @@ import { Link } from "wouter";
 import { AddCaseModal } from "@/components/AddCaseModal";
 import { CaseDetailModal } from "@/components/CaseDetailModal";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
@@ -23,6 +30,8 @@ type Category =
   | "tools"
   | "business"
   | "activation";
+
+type SortOption = "createdDesc" | "createdAsc" | "updatedDesc";
 
 const categories = [
   { id: "all" as Category, label: "ALL" },
@@ -44,6 +53,7 @@ export default function Home() {
   const cases: CaseStudy[] = listQuery.data ?? [];
   const [activeCategory, setActiveCategory] = useState<Category>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("createdDesc");
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCaseId, setEditingCaseId] = useState<number | null>(null);
@@ -71,7 +81,7 @@ export default function Home() {
     (selectedCase?.userId === user?.id || user?.role === "admin");
 
   const filteredCases = useMemo(() => {
-    return cases.filter((c) => {
+    const filtered = cases.filter((c) => {
       const matchesSearch =
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -80,7 +90,19 @@ export default function Home() {
         (activeCategory === "liked" ? c.isFavorite : c.category === activeCategory);
       return matchesSearch && matchesCategory;
     });
-  }, [cases, searchQuery, activeCategory]);
+
+    return filtered.sort((a, b) => {
+      if (sortOption === "createdAsc") {
+        return a.createdAt - b.createdAt;
+      }
+      if (sortOption === "updatedDesc") {
+        const aUpdatedAt = typeof a.updatedAt === "number" ? a.updatedAt : a.createdAt;
+        const bUpdatedAt = typeof b.updatedAt === "number" ? b.updatedAt : b.createdAt;
+        return bUpdatedAt - aUpdatedAt;
+      }
+      return b.createdAt - a.createdAt;
+    });
+  }, [cases, searchQuery, activeCategory, sortOption]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<Category, number> = {
@@ -161,15 +183,6 @@ export default function Home() {
     setSelectedCaseId(null);
     setEditingCaseId(caseId);
   };
-
-  const formatDateTime = (timestamp: number) =>
-    new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(timestamp));
 
   const handleLoginClick = () => {
     window.location.href = getLoginUrl();
@@ -321,6 +334,19 @@ export default function Home() {
               );
             })}
           </div>
+
+          <div className="mt-4 flex justify-end">
+            <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
+              <SelectTrigger className="w-full max-w-xs">
+                <SelectValue placeholder="並び替え" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createdDesc">投稿日が新しい順</SelectItem>
+                <SelectItem value="createdAsc">投稿日が古い順</SelectItem>
+                <SelectItem value="updatedDesc">編集日が新しい順</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </header>
 
@@ -387,14 +413,6 @@ export default function Home() {
                       </div>
                     </div>
                     <CardDescription>{caseStudy.description}</CardDescription>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      投稿日: {formatDateTime(caseStudy.createdAt)}
-                    </p>
-                    {isEdited && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        編集日: {formatDateTime(caseStudy.updatedAt)}
-                      </p>
-                    )}
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-3">
